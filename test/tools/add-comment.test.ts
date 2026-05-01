@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { addComment } from '../../src/tools/add-comment.js'
 import type { PlakyComment } from '../../src/plaky/types.js'
 
@@ -14,14 +14,17 @@ const mockClient = {
 }
 
 describe('addComment', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(mockClient.addComment).mockResolvedValue(comment)
+  })
+
   it('calls client.addComment with correct params', async () => {
-    mockClient.addComment.mockResolvedValue(comment)
     await addComment('s1', 'b1', 'i1', 'This is a comment', mockClient as any)
     expect(mockClient.addComment).toHaveBeenCalledWith('s1', 'b1', 'i1', 'This is a comment')
   })
 
   it('returns the comment from client', async () => {
-    mockClient.addComment.mockResolvedValue(comment)
     const result = await addComment('s1', 'b1', 'i1', 'This is a comment', mockClient as any)
     expect(result).toEqual(comment)
     expect(result.id).toBe('c1')
