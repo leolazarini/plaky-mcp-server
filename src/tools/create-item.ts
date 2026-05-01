@@ -27,20 +27,6 @@ function buildItemUrl(boardId: string, itemId: string): string {
   return `https://app.plaky.com/d/board/${boardId}?itemId=${itemId}`
 }
 
-function buildDetailsComment(input: CreateItemInput): string {
-  const lines: string[] = ['Detalhes do ticket', '']
-  lines.push(`Cliente: ${input.group}`)
-  if (input.project) lines.push(`Projeto: ${input.project}`)
-  const assignees = [
-    ...(input.assignee_email ? [input.assignee_email] : []),
-    ...(input.assignee_emails ?? []),
-  ]
-  if (assignees.length > 0) lines.push(`Responsável: ${assignees.join(', ')}`)
-  if (input.status) lines.push(`Status: ${input.status}`)
-  if (input.due_date) lines.push(`Data de entrega: ${input.due_date}`)
-  if (input.description) lines.push('', `Descrição:\n${input.description}`)
-  return lines.join('\n')
-}
 
 export async function createItem(
   input: CreateItemInput,
@@ -87,7 +73,9 @@ export async function createItem(
 
   const item = await client.createItem(spaceId, boardId, { title: input.title, groupId: group.id, fields })
 
-  await client.addComment(spaceId, boardId, item.id, buildDetailsComment(input))
+  if (input.description) {
+    await client.addComment(spaceId, boardId, item.id, input.description)
+  }
 
   return {
     id: item.id,
