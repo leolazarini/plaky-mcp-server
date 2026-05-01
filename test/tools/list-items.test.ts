@@ -60,7 +60,7 @@ describe('listItems', () => {
   it('returns all items without filters', async () => {
     const result = await listItems({ spaceId: 's1', boardId: 'b1' }, mockClient as any, mockCache)
     expect(result).toHaveLength(3)
-    expect(mockClient.listItems).toHaveBeenCalledWith('s1', 'b1', 1, 20)
+    expect(mockClient.listItems).toHaveBeenCalledWith('s1', 'b1', 1, 100)
   })
 
   it('result shape includes url, group, status, assignees', async () => {
@@ -73,7 +73,7 @@ describe('listItems', () => {
     expect(summary.group).toBe('Backlog')
     expect(summary.status).toBe('In Progress')
     expect(summary.assignees).toEqual(['u1'])
-    expect(summary.created_at).toBe('2026-01-01T00:00:00Z')
+    expect(summary.createdAt).toBe('2026-01-01T00:00:00Z')
   })
 
   it('filters by query (case-insensitive title substring)', async () => {
@@ -117,8 +117,8 @@ describe('listItems', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('caps fetchSize at 100 (passes 100 as pageSize to client)', async () => {
-    await listItems({ spaceId: 's1', boardId: 'b1', limit: 500 }, mockClient as any, mockCache)
+  it('always fetches 100 items from API regardless of limit', async () => {
+    await listItems({ spaceId: 's1', boardId: 'b1', limit: 5 }, mockClient as any, mockCache)
     expect(mockClient.listItems).toHaveBeenCalledWith('s1', 'b1', 1, 100)
   })
 
