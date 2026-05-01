@@ -17,8 +17,8 @@ cp .env.example .env
 Edit `.env` and fill in your Plaky IDs (Hangar Digital values below):
 
 ```env
-PLAKY_DEFAULT_SPACE_ID=YOUR_SPACE_ID          # your Plaky workspace
-PLAKY_DEFAULT_BOARD_ID=YOUR_BOARD_ID          # your default board (or YOUR_BOARD_ID_2 for your secondary board)
+PLAKY_DEFAULT_SPACE_ID=XXXXXX          # https://your-group.plaky.com/spaces/<THIS_NUMBER>/
+PLAKY_DEFAULT_BOARD_ID=XXXXXX          # ../boards/<THIS_NUMBER>/
 ```
 
 ```bash
