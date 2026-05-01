@@ -11,8 +11,10 @@ import { PlakyClient } from './plaky/client.js'
 import { createCache } from './cache/factory.js'
 import { registerTools } from './tools/index.js'
 import { logger } from './observability/logger.js'
+import { RateLimiter } from './rate-limiter.js'
 
 const cache = createCache(config.REDIS_URL)
+const rateLimiter = new RateLimiter()
 
 interface Session {
   transport: StreamableHTTPServerTransport
@@ -33,6 +35,16 @@ app.use('/mcp', authMiddleware)
 
 app.post('/mcp', async (c) => {
   const apiKey = c.get('plaky_api_key')
+
+  const { allowed, retryAfterMs } = rateLimiter.check(apiKey)
+  if (!allowed) {
+    return c.json(
+      { error: 'Muitas requisições. Tente novamente em alguns segundos.' },
+      429,
+      { 'Retry-After': String(Math.ceil(retryAfterMs! / 1000)) },
+    )
+  }
+
   const sessionId = c.req.header('mcp-session-id')
   const body = await c.req.json()
   const { incoming, outgoing } = c.env
