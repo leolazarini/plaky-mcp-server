@@ -6,6 +6,8 @@ import { resolveAssigneeByEmail } from '../utils/resolve-assignee.js'
 
 interface CreateItemInput {
   title: string
+  group: string           // client name — resolved to group_id
+  project?: string
   description?: string
   status?: string
   assignee_email?: string
@@ -34,6 +36,17 @@ export async function createItem(
 ): Promise<CreateItemResult> {
   const board = await getBoard(spaceId, boardId, client, cache)
 
+  // Resolve group (client) by name
+  const group = board.groups.find(
+    (g) => g.title.toLowerCase() === input.group.toLowerCase()
+  )
+  if (!group) {
+    const available = board.groups.map((g) => g.title).join(', ')
+    throw new Error(
+      `Cliente/grupo não encontrado: "${input.group}". Grupos disponíveis: ${available}`
+    )
+  }
+
   // Resolve all assignee emails
   const emails = [
     ...(input.assignee_email ? [input.assignee_email] : []),
@@ -52,12 +65,12 @@ export async function createItem(
   }
 
   const fields = buildFields(
-    { description: input.description, status: input.status, dueDate: input.due_date },
+    { description: input.description, status: input.status, dueDate: input.due_date, project: input.project },
     board,
     userIds
   )
 
-  const item = await client.createItem(spaceId, boardId, { title: input.title, fields })
+  const item = await client.createItem(spaceId, boardId, { title: input.title, groupId: group.id, fields })
 
   return {
     id: item.id,

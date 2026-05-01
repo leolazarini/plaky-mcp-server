@@ -70,14 +70,23 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
 
   server.tool(
     'plaky_create_item',
-    'Cria um ticket num board com resolução semântica de campos',
+    [
+      'Cria um ticket num board Plaky.',
+      'SEMPRE perguntar ao usuário antes de chamar esta tool:',
+      '1. Cliente (group) — obrigatório. Use plaky_get_board para listar os grupos disponíveis.',
+      '2. Projeto — obrigatório.',
+      '3. Responsável (assignee_email) — obrigatório.',
+      'Não chamar esta tool sem ter os três itens acima confirmados pelo usuário.',
+    ].join(' '),
     {
       title: z.string().min(1),
+      group: z.string().min(1).describe('Nome do grupo/cliente no board (ex: "Acme Corp"). Use plaky_get_board para listar os grupos disponíveis.'),
+      project: z.string().min(1).describe('Nome do projeto dentro do cliente.'),
       board_id: z.string().optional(),
       space_id: z.string().optional(),
       description: z.string().optional(),
       status: z.string().optional(),
-      assignee_email: z.string().email().optional(),
+      assignee_email: z.string().email().optional().describe('Email do responsável pelo ticket.'),
       assignee_emails: z.array(z.string().email()).optional(),
       due_date: z.string().optional(),
     },

@@ -4,6 +4,7 @@ export interface FieldInput {
   description?: string
   status?: string
   dueDate?: string
+  project?: string
 }
 
 export function buildFields(
@@ -36,6 +37,27 @@ export function buildFields(
     const f = board.fields.find((f) => f.type === 'person')
     if (f) {
       fields[f.title] = { users: assigneeUserIds.map((id) => ({ id })) }
+    }
+  }
+
+  if (input.project) {
+    const f = board.fields.find(
+      (f) => f.title.toLowerCase() === 'projeto' || f.title.toLowerCase() === 'project'
+    )
+    if (f) {
+      // dropdown field: resolve to matching option label
+      if (f.options?.length) {
+        const option = f.options.find(
+          (o) => o.label.toLowerCase() === input.project!.toLowerCase()
+        )
+        if (!option) {
+          const valid = f.options.map((o) => o.label).join(', ')
+          throw new Error(`Projeto inválido: "${input.project}". Opções disponíveis: ${valid}`)
+        }
+        fields[f.title] = option.label
+      } else {
+        fields[f.title] = input.project
+      }
     }
   }
 
