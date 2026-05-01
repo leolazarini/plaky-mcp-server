@@ -21,6 +21,13 @@ function err(message: string) {
   return { content: [{ type: 'text' as const, text: message }], isError: true }
 }
 
+function resolveBoard(space_id?: string, board_id?: string): { sid: string; bid: string } | null {
+  const sid = space_id ?? config.PLAKY_DEFAULT_SPACE_ID
+  const bid = board_id ?? config.PLAKY_DEFAULT_BOARD_ID
+  if (!sid || !bid) return null
+  return { sid, bid }
+}
+
 export function registerTools(server: McpServer, client: PlakyClient, cache: ICache) {
   server.tool('plaky_list_boards', 'Lista todos os boards visíveis', {}, async () => {
     try {
@@ -38,10 +45,10 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       board_id: z.string().optional(),
     },
     async ({ space_id, board_id }) => {
+      const board = resolveBoard(space_id, board_id)
+      if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        const sid = space_id ?? config.PLAKY_DEFAULT_SPACE_ID
-        const bid = board_id ?? config.PLAKY_DEFAULT_BOARD_ID
-        return ok(await getBoard(sid, bid, client, cache))
+        return ok(await getBoard(board.sid, board.bid, client, cache))
       } catch (e) {
         return err(toMcpErrorMessage(e))
       }
@@ -75,10 +82,10 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       due_date: z.string().optional(),
     },
     async (input) => {
+      const board = resolveBoard(input.space_id, input.board_id)
+      if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        const sid = input.space_id ?? config.PLAKY_DEFAULT_SPACE_ID
-        const bid = input.board_id ?? config.PLAKY_DEFAULT_BOARD_ID
-        return ok(await createItem(input, sid, bid, client, cache))
+        return ok(await createItem(input, board.sid, board.bid, client, cache))
       } catch (e) {
         return err(e instanceof Error ? e.message : toMcpErrorMessage(e))
       }
@@ -97,10 +104,10 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       limit: z.number().int().min(1).max(100).optional(),
     },
     async ({ space_id, board_id, query, status, assignee_email, limit }) => {
+      const board = resolveBoard(space_id, board_id)
+      if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        const sid = space_id ?? config.PLAKY_DEFAULT_SPACE_ID
-        const bid = board_id ?? config.PLAKY_DEFAULT_BOARD_ID
-        return ok(await listItems({ spaceId: sid, boardId: bid, query, status, assigneeEmail: assignee_email, limit }, client, cache))
+        return ok(await listItems({ spaceId: board.sid, boardId: board.bid, query, status, assigneeEmail: assignee_email, limit }, client, cache))
       } catch (e) {
         return err(toMcpErrorMessage(e))
       }
@@ -116,10 +123,10 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       item_id: z.string().min(1),
     },
     async ({ space_id, board_id, item_id }) => {
+      const board = resolveBoard(space_id, board_id)
+      if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        const sid = space_id ?? config.PLAKY_DEFAULT_SPACE_ID
-        const bid = board_id ?? config.PLAKY_DEFAULT_BOARD_ID
-        return ok(await getItem(sid, bid, item_id, client))
+        return ok(await getItem(board.sid, board.bid, item_id, client))
       } catch (e) {
         return err(toMcpErrorMessage(e))
       }
@@ -140,10 +147,10 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       due_date: z.string().optional(),
     },
     async (input) => {
+      const board = resolveBoard(input.space_id, input.board_id)
+      if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        const sid = input.space_id ?? config.PLAKY_DEFAULT_SPACE_ID
-        const bid = input.board_id ?? config.PLAKY_DEFAULT_BOARD_ID
-        return ok(await updateItem(input, sid, bid, input.item_id, client, cache))
+        return ok(await updateItem(input, board.sid, board.bid, input.item_id, client, cache))
       } catch (e) {
         return err(e instanceof Error ? e.message : toMcpErrorMessage(e))
       }
@@ -160,10 +167,10 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       text: z.string().min(1),
     },
     async ({ space_id, board_id, item_id, text }) => {
+      const board = resolveBoard(space_id, board_id)
+      if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        const sid = space_id ?? config.PLAKY_DEFAULT_SPACE_ID
-        const bid = board_id ?? config.PLAKY_DEFAULT_BOARD_ID
-        return ok(await addComment(sid, bid, item_id, text, client))
+        return ok(await addComment(board.sid, board.bid, item_id, text, client))
       } catch (e) {
         return err(toMcpErrorMessage(e))
       }
