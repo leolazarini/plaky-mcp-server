@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { logger } from '../observability/logger.js'
 import type {
   PlakyPaginated,
   PlakySpace,
@@ -7,6 +8,33 @@ import type {
   PlakyItem,
   PlakyComment,
 } from './types.js'
+
+// Raw shapes returned by the Plaky REST API — differ from the domain types
+interface RawFieldOption {
+  key: string
+  title: string
+  color?: string
+}
+
+interface RawField {
+  id: number
+  key: string
+  name: string        // domain uses "title"
+  type: string        // uppercase, e.g. "STATUS" — domain uses lowercase
+  configuration?: { values?: RawFieldOption[] }
+}
+
+interface RawGroup {
+  id: number
+  title: string
+}
+
+interface RawBoard {
+  id: number
+  title: string
+  fields?: RawField[]
+  groups?: RawGroup[]
+}
 
 export class PlakyApiError extends Error {
   constructor(
@@ -29,6 +57,9 @@ export class PlakyClient {
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
+    const method = init?.method ?? 'GET'
+    logger.debug({ method, path, body: init?.body }, 'plaky request')
+
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...init,
       headers: {
@@ -38,20 +69,42 @@ export class PlakyClient {
       },
     })
 
+    const rawBody = await response.text()
+    logger.debug({ method, path, status: response.status, body: rawBody }, 'plaky response')
+
     if (!response.ok) {
-      const body = await response.text().catch(() => '')
-      throw new PlakyApiError(response.status, `Plaky ${response.status}: ${body}`)
+      throw new PlakyApiError(response.status, `Plaky ${response.status}: ${rawBody}`)
     }
 
-    return response.json() as Promise<T>
+    return JSON.parse(rawBody) as T
+  }
+
+  private mapBoard(raw: RawBoard): PlakyBoard {
+    return {
+      id: String(raw.id),
+      title: raw.title,
+      groups: (raw.groups ?? []).map(g => ({ id: String(g.id), title: g.title })),
+      fields: (raw.fields ?? []).map(f => ({
+        id: String(f.id),
+        key: f.key,
+        title: f.name,
+        type: f.type.toLowerCase(),
+        options: f.configuration?.values?.map(v => ({
+          id: v.key,
+          label: v.title,
+          color: v.color,
+        })),
+      })),
+    }
   }
 
   listSpaces(): Promise<PlakyPaginated<PlakySpace>> {
     return this.request('/spaces?expand=board&pageSize=100')
   }
 
-  getBoard(spaceId: string, boardId: string): Promise<PlakyBoard> {
-    return this.request(`/spaces/${spaceId}/boards/${boardId}`)
+  async getBoard(spaceId: string, boardId: string): Promise<PlakyBoard> {
+    const raw = await this.request<RawBoard>(`/spaces/${spaceId}/boards/${boardId}`)
+    return this.mapBoard(raw)
   }
 
   listUsers(page = 1): Promise<PlakyPaginated<PlakyUser>> {
