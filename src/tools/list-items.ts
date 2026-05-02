@@ -59,7 +59,7 @@ function toItemSummary(item: PlakyItem, boardId: string, userMap: Map<string, Pl
 export async function listItems(
   input: ListItemsInput,
   client: Pick<PlakyClient, 'apiKeyHash' | 'listItems' | 'listUsers'>,
-  cache: ICache
+  _cache: ICache
 ): Promise<ItemSummary[]> {
   const { spaceId, boardId, query, status, assigneeEmail, assigneeUserId, limit } = input
   const resultLimit = Math.min(limit ?? 20, 100)

@@ -184,7 +184,7 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       const board = resolveBoard(space_id, board_id)
       if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        return ok(await addComment(board.sid, board.bid, item_id, text, client))
+        return ok(await addComment(board.sid, board.bid, item_id, text, client, cache))
       } catch (e) {
         return err(toMcpErrorMessage(e))
       }
