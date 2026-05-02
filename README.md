@@ -14,7 +14,7 @@ npm ci
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your Plaky IDs (Hangar Digital values below):
+Edit `.env` and fill in your Plaky IDs:
 
 ```env
 PLAKY_DEFAULT_SPACE_ID=XXXXXX          # https://your-group.plaky.com/spaces/<THIS_NUMBER>/
