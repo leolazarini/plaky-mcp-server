@@ -103,13 +103,17 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
 
   server.tool(
     'plaky_list_items',
-    'Lista tickets de um board com filtros opcionais',
+    [
+      'Lista tickets de um board com filtros opcionais.',
+      'Se o usuário disser "minhas tarefas" ou similar, use o e-mail do próprio usuário da conversa.',
+      'Se o usuário quiser filtrar por outra pessoa e o e-mail não for conhecido, perguntar antes de chamar esta tool.',
+    ].join(' '),
     {
       space_id: z.string().optional(),
       board_id: z.string().optional(),
       query: z.string().optional(),
       status: z.string().optional(),
-      assignee_email: z.string().email().optional(),
+      assignee_email: z.string().email().optional().describe('E-mail do responsável. Use o e-mail do usuário atual se ele disser "meu/minhas". Para outros, perguntar se não souber.'),
       limit: z.number().int().min(1).max(100).optional(),
     },
     async ({ space_id, board_id, query, status, assignee_email, limit }) => {

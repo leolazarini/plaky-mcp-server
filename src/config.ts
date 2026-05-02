@@ -8,7 +8,7 @@ const schema = z.object({
   PLAKY_DEFAULT_BOARD_ID: z.string().min(1).optional(),
   REDIS_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional().or(z.literal('').transform(() => undefined)),
 })
 
 const result = schema.safeParse(process.env)

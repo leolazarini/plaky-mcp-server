@@ -1,7 +1,6 @@
 import type { PlakyClient } from '../plaky/client.js'
 import type { ICache } from '../cache/interface.js'
-import type { PlakyItem } from '../plaky/types.js'
-import { resolveAssigneeByEmail } from '../utils/resolve-assignee.js'
+import type { PlakyItem, PlakyUser } from '../plaky/types.js'
 
 export interface ListItemsInput {
   spaceId: string
@@ -12,13 +11,19 @@ export interface ListItemsInput {
   limit?: number
 }
 
+export interface AssigneeSummary {
+  id: string
+  name: string
+  email: string
+}
+
 export interface ItemSummary {
   id: string
   title: string
   url: string
   group: string
   status?: string
-  assignees: string[]
+  assignees: AssigneeSummary[]
   createdAt: string
 }
 
@@ -32,8 +37,9 @@ function extractPersonUserIds(item: PlakyItem): string[] {
   return personValue?.users?.map((u) => u.id) ?? []
 }
 
-function toItemSummary(item: PlakyItem, boardId: string): ItemSummary {
+function toItemSummary(item: PlakyItem, boardId: string, userMap: Map<string, PlakyUser>): ItemSummary {
   const statusField = item.fields?.find((f) => f.type === 'status')
+  const assigneeIds = extractPersonUserIds(item)
 
   return {
     id: item.id,
@@ -41,7 +47,10 @@ function toItemSummary(item: PlakyItem, boardId: string): ItemSummary {
     url: buildItemUrl(boardId, item.id),
     group: item.group.title,
     status: typeof statusField?.value === 'string' ? statusField.value : undefined,
-    assignees: extractPersonUserIds(item),
+    assignees: assigneeIds.map((id) => {
+      const user = userMap.get(id)
+      return user ? { id, name: user.name, email: user.email } : { id, name: id, email: '' }
+    }),
     createdAt: item.createdAt,
   }
 }
@@ -54,8 +63,13 @@ export async function listItems(
   const { spaceId, boardId, query, status, assigneeEmail, limit } = input
   const resultLimit = Math.min(limit ?? 20, 100)
 
-  const response = await client.listItems(spaceId, boardId, 1, 100)
-  let items = response.data
+  const [itemsResponse, usersResponse] = await Promise.all([
+    client.listItems(spaceId, boardId, 1, 100),
+    client.listUsers(),
+  ])
+
+  const userMap = new Map<string, PlakyUser>(usersResponse.data.map((u) => [u.id, u]))
+  let items = itemsResponse.data
 
   if (query) {
     const lower = query.toLowerCase()
@@ -70,14 +84,14 @@ export async function listItems(
     })
   }
 
-  if (assigneeEmail) {
-    const resolved = await resolveAssigneeByEmail(assigneeEmail, client, cache)
-    if (resolved.type === 'not_found') return []
+  const summaries = items.map((item) => toItemSummary(item, boardId, userMap))
 
-    const { userId } = resolved
-    items = items.filter((item) => extractPersonUserIds(item).includes(userId))
+  if (assigneeEmail) {
+    const lower = assigneeEmail.toLowerCase()
+    return summaries
+      .filter((s) => s.assignees.some((a) => a.email.toLowerCase() === lower))
+      .slice(0, resultLimit)
   }
 
-  const summaries = items.map((item) => toItemSummary(item, boardId))
   return summaries.slice(0, resultLimit)
 }
