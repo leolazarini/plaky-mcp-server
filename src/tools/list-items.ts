@@ -8,6 +8,7 @@ export interface ListItemsInput {
   query?: string
   status?: string
   assigneeEmail?: string
+  assigneeUserId?: string
   limit?: number
 }
 
@@ -60,11 +61,23 @@ export async function listItems(
   client: Pick<PlakyClient, 'apiKeyHash' | 'listItems' | 'listUsers'>,
   cache: ICache
 ): Promise<ItemSummary[]> {
-  const { spaceId, boardId, query, status, assigneeEmail, limit } = input
+  const { spaceId, boardId, query, status, assigneeEmail, assigneeUserId, limit } = input
   const resultLimit = Math.min(limit ?? 20, 100)
 
+  // Resolve assignee: prefer explicit userId, otherwise resolve from email
+  let resolvedUserId: string | undefined = assigneeUserId
+
+  if (!resolvedUserId && assigneeEmail) {
+    const usersResponse = await client.listUsers()
+    const user = usersResponse.data.find(
+      (u) => u.email.toLowerCase() === assigneeEmail.toLowerCase()
+    )
+    if (!user) return []
+    resolvedUserId = user.id
+  }
+
   const [itemsResponse, usersResponse] = await Promise.all([
-    client.listItems(spaceId, boardId, 1, 100),
+    client.listItems(spaceId, boardId, 1, 100, resolvedUserId),
     client.listUsers(),
   ])
 
@@ -84,14 +97,5 @@ export async function listItems(
     })
   }
 
-  const summaries = items.map((item) => toItemSummary(item, boardId, userMap))
-
-  if (assigneeEmail) {
-    const lower = assigneeEmail.toLowerCase()
-    return summaries
-      .filter((s) => s.assignees.some((a) => a.email.toLowerCase() === lower))
-      .slice(0, resultLimit)
-  }
-
-  return summaries.slice(0, resultLimit)
+  return items.map((item) => toItemSummary(item, boardId, userMap)).slice(0, resultLimit)
 }

@@ -58,10 +58,14 @@ export class PlakyClient {
     return this.request(`/users?page=${page}&pageSize=100&status=ACTIVE`)
   }
 
-  listItems(spaceId: string, boardId: string, page = 1, pageSize = 50): Promise<PlakyPaginated<PlakyItem>> {
-    return this.request(
-      `/spaces/${spaceId}/boards/${boardId}/items?expand=fields&page=${page}&pageSize=${pageSize}`
-    )
+  listItems(spaceId: string, boardId: string, page = 1, pageSize = 50, userId?: string): Promise<PlakyPaginated<PlakyItem>> {
+    const params = new URLSearchParams({
+      expand: 'fields',
+      page: String(page),
+      pageSize: String(pageSize),
+    })
+    if (userId) params.set('userId', userId)
+    return this.request(`/spaces/${spaceId}/boards/${boardId}/items?${params}`)
   }
 
   getItem(spaceId: string, boardId: string, itemId: string): Promise<PlakyItem> {

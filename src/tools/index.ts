@@ -114,13 +114,14 @@ export function registerTools(server: McpServer, client: PlakyClient, cache: ICa
       query: z.string().optional(),
       status: z.string().optional(),
       assignee_email: z.string().email().optional().describe('E-mail do responsável. Use o e-mail do usuário atual se ele disser "meu/minhas". Para outros, perguntar se não souber.'),
+      assignee_user_id: z.string().optional().describe('ID numérico do usuário no Plaky. Use quando o ID já for conhecido — tem prioridade sobre assignee_email.'),
       limit: z.number().int().min(1).max(100).optional(),
     },
-    async ({ space_id, board_id, query, status, assignee_email, limit }) => {
+    async ({ space_id, board_id, query, status, assignee_email, assignee_user_id, limit }) => {
       const board = resolveBoard(space_id, board_id)
       if (!board) return err('Informe space_id e board_id (use plaky_list_boards para descobrir os IDs disponíveis).')
       try {
-        return ok(await listItems({ spaceId: board.sid, boardId: board.bid, query, status, assigneeEmail: assignee_email, limit }, client, cache))
+        return ok(await listItems({ spaceId: board.sid, boardId: board.bid, query, status, assigneeEmail: assignee_email, assigneeUserId: assignee_user_id, limit }, client, cache))
       } catch (e) {
         return err(toMcpErrorMessage(e))
       }
