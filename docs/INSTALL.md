@@ -5,7 +5,7 @@
 - Node.js 20+
 - npm 10+
 - A Plaky workspace with API access
-- (For deployment) AWS CLI, Terraform 1.5+, Docker
+
 
 ## Local Development
 
@@ -90,64 +90,6 @@ Add to `~/.claude.json` (or your MCP config file):
     "plaky": {
       "type": "http",
       "url": "http://localhost:3000/mcp",
-      "headers": {
-        "Authorization": "Bearer <your-plaky-api-key>"
-      }
-    }
-  }
-}
-```
-
----
-
-## Deploy to AWS App Runner
-
-### 1. Bootstrap infrastructure (first time only)
-
-```bash
-cd infra/terraform
-
-# Create a terraform.tfvars file
-cat > terraform.tfvars <<EOF
-app_name                  = "plaky-mcp"
-aws_region                = "us-east-1"
-plaky_default_space_id    = "<your-space-id>"
-plaky_default_board_id    = "<your-board-id>"
-EOF
-
-terraform init
-terraform apply
-```
-
-Terraform creates an ECR repository and an App Runner service. Note the output:
-
-```
-apprunner_url = "https://xxxxxxxxxx.us-east-1.awsapprunner.com"
-```
-
-### 2. Configure GitHub Secrets
-
-In your GitHub repository → **Settings → Secrets and variables → Actions**, add:
-
-| Secret | Value |
-|---|---|
-| `AWS_DEPLOY_ROLE_ARN` | ARN of the IAM role with ECR push + App Runner deploy permissions |
-| `APPRUNNER_SERVICE_ARN` | ARN of the App Runner service (from `terraform show`) |
-
-### 3. Deploy
-
-Push to `main`. The `Deploy` workflow runs tests, builds the Docker image, pushes to ECR, and triggers an App Runner deployment automatically.
-
-Monitor the deploy in the AWS Console under **App Runner → plaky-mcp → Activity**.
-
-### 4. Connect Claude Code (remote)
-
-```json
-{
-  "mcpServers": {
-    "plaky": {
-      "type": "http",
-      "url": "https://<apprunner-url>/mcp",
       "headers": {
         "Authorization": "Bearer <your-plaky-api-key>"
       }
