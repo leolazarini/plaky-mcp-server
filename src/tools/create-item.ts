@@ -6,7 +6,7 @@ import { resolveAssigneeByEmail } from '../utils/resolve-assignee.js'
 
 interface CreateItemInput {
   title: string
-  group: string           // client name — resolved to group_id
+  group?: string          // client name — resolved to group_id
   project?: string
   description?: string
   status?: string
@@ -38,14 +38,18 @@ export async function createItem(
   const board = await getBoard(spaceId, boardId, client, cache)
 
   // Resolve group (client) by name
-  const group = board.groups.find(
-    (g) => g.title.toLowerCase() === input.group.toLowerCase()
-  )
-  if (!group) {
-    const available = board.groups.map((g) => g.title).join(', ')
-    throw new Error(
-      `Cliente/grupo não encontrado: "${input.group}". Grupos disponíveis: ${available}`
+  let groupId: string | undefined
+  if (input.group) {
+    const group = board.groups.find(
+      (g) => g.title.toLowerCase() === input.group!.toLowerCase()
     )
+    if (!group) {
+      const available = board.groups.map((g) => g.title).join(', ')
+      throw new Error(
+        `Cliente/grupo não encontrado: "${input.group}". Grupos disponíveis: ${available}`
+      )
+    }
+    groupId = group.id
   }
 
   // Resolve all assignee emails
@@ -71,7 +75,7 @@ export async function createItem(
     userIds
   )
 
-  const item = await client.createItem(spaceId, boardId, { title: input.title, groupId: group.id, fields })
+  const item = await client.createItem(spaceId, boardId, { title: input.title, ...(groupId ? { groupId } : {}), fields })
 
   if (input.description) {
     await client.addComment(spaceId, boardId, item.id, input.description)
