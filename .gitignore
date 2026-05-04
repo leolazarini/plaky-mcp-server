@@ -34,7 +34,6 @@ coverage/
 # Deployment
 Dockerfile
 infra/
-.github/
 
 # Terraform files
 *.tfstate
